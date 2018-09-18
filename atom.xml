@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Frank&#39;s Blog</title>
+  <id>http://zjsxwc.github.io</id>
+  <updated>2018-09-18T08:59:55+08:00</updated>
+  <subtitle>弃我去者，昨日之日不可留； 乱我心者，今日之日多烦忧。</subtitle>
+  <link href="http://zjsxwc.github.io"></link>
+  <author>
+    <name>Frank&#39;s Blog</name>
+  </author>
+  <entry>
+    <title>买买买</title>
+    <updated></updated>
+    <id>urn:uuid:f7569013-e8f3-41b7-a61c-ba916426e00a</id>
+    <content type="html"></content>
+    <link href="http://zjsxwc.github.io/1.html"></link>
+    <author>
+      <name>Frank</name>
+    </author>
+  </entry>
+</feed>
