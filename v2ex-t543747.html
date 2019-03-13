@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html>
 <head>
@@ -16,8 +15,6 @@
     <button onclick="processKeyUp('ArrowDown');">DOWN</button>
     <button onclick="processKeyUp('ArrowRight');">RIGHT</button>
 </p>
-
-
 
 
 <script>
@@ -404,9 +401,9 @@
 
 
 
+    
 
-
-
+    //开始组织游戏对象，构建游戏
 
 
     var htmlGameContext = {
@@ -445,7 +442,7 @@
         if (!square) {
             return;
         }
-        
+
         if (code === "ArrowUp") {
             htmlGameContext.map.moveSquare(square, Map.MoveDirections.UP);
         }
@@ -468,6 +465,7 @@
             }
         }, 300);
     }
+
     function handleHtmlKeyPress() {
         document.onkeyup = function (event) {
             processKeyUp(event.code);
