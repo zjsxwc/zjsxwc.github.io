@@ -412,7 +412,7 @@ var htmlGameContext = {
     unit: 30
 };
 
-function freshCurrentSquareHtml() {
+function refreshCurrentSquareHtml() {
     if (!htmlGameContext.currentDom) {
         return;
     }
@@ -454,7 +454,7 @@ function handleHtmlKeyPress() {
             htmlGameContext.map.moveSquare(square, Map.MoveDirections.RIGHT);
         }
 
-        freshCurrentSquareHtml();
+        refreshCurrentSquareHtml();
 
         setTimeout(function () {
             if (htmlGameContext.game.isWin()) {
