@@ -280,8 +280,7 @@ Map.prototype.moveSquare = function moveSquare(square, direction) {
                 || mayValidSquare.innerContainsPoint(this.squares[j].x, this.squares[j].y + this.squares[j].height)
                 || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y + this.squares[j].height)
                 || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y + this.squares[j].height)
-                || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width / 2, this.squares[j].y + this.squares[j].height / 2)
-                || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width / 1.2, this.squares[j].y + this.squares[j].height / 1.2)
+                || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width - 0.5, this.squares[j].y + this.squares[j].height - 0.5)
             ) {
                 return false;
             }
@@ -301,8 +300,7 @@ Map.prototype.moveSquare = function moveSquare(square, direction) {
                 || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width, mayValidSquare.y)
                 || this.squares[j].innerContainsPoint(mayValidSquare.x, mayValidSquare.y + mayValidSquare.height)
                 || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width, mayValidSquare.y + mayValidSquare.height)
-                || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width / 2, mayValidSquare.y + mayValidSquare.height / 2)
-                || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width / 1.5, mayValidSquare.y + mayValidSquare.height / 1.5)
+                || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width - 0.5, mayValidSquare.y + mayValidSquare.height - 0.5)
             ) {
                 return false;
             }
