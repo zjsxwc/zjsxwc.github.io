@@ -1,454 +1,461 @@
+
 <!doctype html>
 <html>
 <head>
-<meta charset="utf-8">
+    <meta charset="utf-8">
 
-<title>一个华容道游戏</title>
+    <title>一个华容道游戏</title>
 
 </head>
 
 <body>
-<p style="position: fixed; top: 200px;">鼠标选中方块后通过键盘方向键控制</p>
+<p style="position: fixed; top: 200px;">
+    鼠标选中方块后通过键盘方向键控制
+    <button onclick="processKeyUp('ArrowLeft');">LEFT</button>
+    <button onclick="processKeyUp('ArrowUp');">UP</button>
+    <button onclick="processKeyUp('ArrowDown');">DOWN</button>
+    <button onclick="processKeyUp('ArrowRight');">RIGHT</button>
+</p>
 
 
 
 
 <script>
-//地图左上是（0，0）点，最小单位为1
-//水平是X轴
-//竖直是Y轴
+    //地图左上是（0，0）点，最小单位为1
+    //水平是X轴
+    //竖直是Y轴
 
 
-function Square(x, y, width, height, name, isKing) {
-    if (!isKing) {
-        isKing = false;
-    }
-    this.x = parseInt(x);
-    this.y = parseInt(y);
-    this.width = parseInt(width);
-    this.height = parseInt(height);
-    if (!this.width) {
-        throw "[error] cannot create square";
-    }
-    if (!this.height) {
-        throw "[error] cannot create square";
-    }
-    this.name = name;
-    this.isKing = !!isKing;
-
-    function uuid() {
-        var s = [];
-        var hexDigits = "0123456789abcdef";
-        for (var i = 0; i < 36; i++) {
-            s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+    function Square(x, y, width, height, name, isKing) {
+        if (!isKing) {
+            isKing = false;
         }
-        s[14] = "4"; // bits 12-15 of the time_hi_and_version field to 0010
-        s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1); // bits 6-7 of the clock_seq_hi_and_reserved to 01
-        s[8] = s[13] = s[18] = s[23] = "-";
-        return s.join("");
+        this.x = parseInt(x);
+        this.y = parseInt(y);
+        this.width = parseInt(width);
+        this.height = parseInt(height);
+        if (!this.width) {
+            throw "[error] cannot create square";
+        }
+        if (!this.height) {
+            throw "[error] cannot create square";
+        }
+        this.name = name;
+        this.isKing = !!isKing;
+
+        function uuid() {
+            var s = [];
+            var hexDigits = "0123456789abcdef";
+            for (var i = 0; i < 36; i++) {
+                s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+            }
+            s[14] = "4"; // bits 12-15 of the time_hi_and_version field to 0010
+            s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1); // bits 6-7 of the clock_seq_hi_and_reserved to 01
+            s[8] = s[13] = s[18] = s[23] = "-";
+            return s.join("");
+        }
+
+        this.id = uuid();
     }
 
-    this.id = uuid();
-}
-
-Square.prototype.innerContainsPoint = function innerContainsPoint(x, y) {
-    if (
-        (this.x < x) && ((this.x + this.width) > x)
-        && (this.y < y) && ((this.y + this.height) > y)
-    ) {
-        return true;
-    }
-    return false;
-};
-
-Square.prototype.containsPoint = function innerContainsPoint(x, y) {
-    if (
-        (this.x <= x) && ((this.x + this.width) >= x)
-        && (this.y <= y) && ((this.y + this.height) >= y)
-    ) {
-        return true;
-    }
-    return false;
-};
-
-
-function Map(squares, exitX1, exitY1, exitX2, exitY2, maxWidth, maxHeight) {
-    this.squares = squares;
-    this.exitLineSegment = {
-        exitX1: parseInt(exitX1),
-        exitY1: parseInt(exitY1),
-        exitX2: parseInt(exitX2),
-        exitY2: parseInt(exitY2)
+    Square.prototype.innerContainsPoint = function innerContainsPoint(x, y) {
+        if (
+            (this.x < x) && ((this.x + this.width) > x)
+            && (this.y < y) && ((this.y + this.height) > y)
+        ) {
+            return true;
+        }
+        return false;
     };
-    this.maxWidth = parseInt(maxWidth);
-    this.maxHeight = parseInt(maxHeight);
 
-    this.king = null;
-    var i;
-    for (i = 0; i < this.squares.length; i++) {
-        if (this.squares[i].x < 0) {
-            throw "[error] cannot put in map";
-        }
-        if ((this.squares[i].x + this.squares[i].width) > this.maxWidth) {
-            throw "[error] cannot put in map";
-        }
-        if (this.squares[i].y < 0) {
-            throw "[error] cannot put in map";
-        }
-        if ((this.squares[i].y + this.squares[i].height) > this.maxHeight) {
-            throw "[error] cannot put in map";
-        }
-
-        if (this.squares[i].isKing) {
-            this.king = this.squares[i];
-            break;
-        }
-    }
-}
-
-Map.MoveDirections = {
-    UP: 1,
-    DOWN: 2,
-    LEFT: 3,
-    RIGHT: 4
-};
-
-Map.prototype.isKingReachedExit = function isKingReachedExit() {
-    if (!this.king) {
-        throw "[error] No king in map";
-    }
-
-    //判断king的四个边之一是否在map的exitLineSegment里
-    if (this.exitLineSegment.exitY1 === this.exitLineSegment.exitY2) { //如果exitLineSegment是水平线段
-        //判断king的上下两个水平边
-        var kingUpLineSegment = {
-            x1: this.king.x,
-            y1: this.king.y,
-            x2: this.king.x + this.king.width,
-            y2: this.king.y
-        };
-
+    Square.prototype.containsPoint = function innerContainsPoint(x, y) {
         if (
-            (this.exitLineSegment.exitY1 === kingUpLineSegment.y1)
-            && (this.exitLineSegment.exitX1 <= kingUpLineSegment.x1)
-            && (this.exitLineSegment.exitX2 >= kingUpLineSegment.x2)
+            (this.x <= x) && ((this.x + this.width) >= x)
+            && (this.y <= y) && ((this.y + this.height) >= y)
         ) {
             return true;
         }
+        return false;
+    };
 
-        var kingDownLineSegment = {
-            x1: this.king.x,
-            y1: this.king.y + this.king.height,
-            x2: this.king.x + this.king.width,
-            y2: this.king.y + this.king.height
+
+    function Map(squares, exitX1, exitY1, exitX2, exitY2, maxWidth, maxHeight) {
+        this.squares = squares;
+        this.exitLineSegment = {
+            exitX1: parseInt(exitX1),
+            exitY1: parseInt(exitY1),
+            exitX2: parseInt(exitX2),
+            exitY2: parseInt(exitY2)
         };
+        this.maxWidth = parseInt(maxWidth);
+        this.maxHeight = parseInt(maxHeight);
 
-        if (
-            (this.exitLineSegment.exitY1 === kingDownLineSegment.y1)
-            && (this.exitLineSegment.exitX1 <= kingDownLineSegment.x1)
-            && (this.exitLineSegment.exitX2 >= kingDownLineSegment.x2)
-        ) {
-            return true;
-        }
-
-
-    } else if (this.exitLineSegment.exitX1 === this.exitLineSegment.exitX2) {//如果exitLineSegment是竖直线段
-        var kingLeftLineSegment = {
-            x1: this.king.x,
-            y1: this.king.y,
-            x2: this.king.x,
-            y2: this.king.y + this.king.height
-        };
-
-        if (
-            (this.exitLineSegment.exitX1 === kingLeftLineSegment.x1)
-            && (this.exitLineSegment.exitY1 <= kingLeftLineSegment.y1)
-            && (this.exitLineSegment.exitY2 >= kingLeftLineSegment.y2)
-        ) {
-            return true;
-        }
-
-        var kingRightLineSegment = {
-            x1: this.king.x + this.king.width,
-            y1: this.king.y,
-            x2: this.king.x + this.king.width,
-            y2: this.king.y + this.king.height
-        };
-
-        if (
-            (this.exitLineSegment.exitX1 === kingRightLineSegment.x1)
-            && (this.exitLineSegment.exitY1 <= kingRightLineSegment.y1)
-            && (this.exitLineSegment.exitY2 >= kingRightLineSegment.y2)
-        ) {
-            return true;
-        }
-
-    } else {
-        throw "[error] No valid exitLineSegment in map";
-    }
-
-    return false;
-};
-
-Map.prototype.getSquareById = function getSquareById(id) {
-    var j;
-    for (j = 0; j < this.squares.length; j++) {
-        if (id === this.squares[j].id) {
-            return this.squares[j];
-        }
-    }
-    return null;
-};
-
-Map.prototype.moveSquare = function moveSquare(square, direction) {
-    if (!square) {
-        throw "[error] square not exist";
-    }
-    direction = parseInt(direction);
-    var points = null;
-    // {x: square.x, y: square.y},
-    // {x: square.x + square.width, y: square.y},
-    // {x: square.x, y: square.y + square.height},
-    // {x: square.x + square.width, y: square.y + square.height}
-
-    if (direction == Map.MoveDirections.UP) {
-        points = [
-            {x: square.x, y: square.y - 1},
-            {x: square.x + square.width, y: square.y - 1},
-            {x: square.x, y: square.y + square.height - 1},
-            {x: square.x + square.width, y: square.y + square.height - 1}
-        ];
-    }
-    if (direction == Map.MoveDirections.DOWN) {
-        points = [
-            {x: square.x, y: square.y + 1},
-            {x: square.x + square.width, y: square.y + 1},
-            {x: square.x, y: square.y + square.height + 1},
-            {x: square.x + square.width, y: square.y + square.height + 1}
-        ];
-    }
-    if (direction == Map.MoveDirections.LEFT) {
-        points = [
-            {x: square.x - 1, y: square.y},
-            {x: square.x + square.width - 1, y: square.y},
-            {x: square.x - 1, y: square.y + square.height},
-            {x: square.x + square.width - 1, y: square.y + square.height}
-        ];
-    }
-    if (direction == Map.MoveDirections.RIGHT) {
-        points = [
-            {x: square.x + 1, y: square.y},
-            {x: square.x + square.width + 1, y: square.y},
-            {x: square.x + 1, y: square.y + square.height},
-            {x: square.x + square.width + 1, y: square.y + square.height}
-        ];
-    }
-    if (points) {
-        var i, j;
-        for (i = 0; i < points.length; i++) {
-            if (points[i].x < 0) {
-                return false;
+        this.king = null;
+        var i;
+        for (i = 0; i < this.squares.length; i++) {
+            if (this.squares[i].x < 0) {
+                throw "[error] cannot put in map";
             }
-            if (points[i].y < 0) {
-                return false;
+            if ((this.squares[i].x + this.squares[i].width) > this.maxWidth) {
+                throw "[error] cannot put in map";
             }
-            if (points[i].x > this.maxWidth) {
-                return false;
+            if (this.squares[i].y < 0) {
+                throw "[error] cannot put in map";
             }
-            if (points[i].y > this.maxHeight) {
-                return false;
+            if ((this.squares[i].y + this.squares[i].height) > this.maxHeight) {
+                throw "[error] cannot put in map";
+            }
+
+            if (this.squares[i].isKing) {
+                this.king = this.squares[i];
+                break;
             }
         }
+    }
 
-        var mayValidSquare = new Square(points[0].x, points[0].y, square.width, square.height, "tmp");
+    Map.MoveDirections = {
+        UP: 1,
+        DOWN: 2,
+        LEFT: 3,
+        RIGHT: 4
+    };
+
+    Map.prototype.isKingReachedExit = function isKingReachedExit() {
+        if (!this.king) {
+            throw "[error] No king in map";
+        }
+
+        //判断king的四个边之一是否在map的exitLineSegment里
+        if (this.exitLineSegment.exitY1 === this.exitLineSegment.exitY2) { //如果exitLineSegment是水平线段
+            //判断king的上下两个水平边
+            var kingUpLineSegment = {
+                x1: this.king.x,
+                y1: this.king.y,
+                x2: this.king.x + this.king.width,
+                y2: this.king.y
+            };
+
+            if (
+                (this.exitLineSegment.exitY1 === kingUpLineSegment.y1)
+                && (this.exitLineSegment.exitX1 <= kingUpLineSegment.x1)
+                && (this.exitLineSegment.exitX2 >= kingUpLineSegment.x2)
+            ) {
+                return true;
+            }
+
+            var kingDownLineSegment = {
+                x1: this.king.x,
+                y1: this.king.y + this.king.height,
+                x2: this.king.x + this.king.width,
+                y2: this.king.y + this.king.height
+            };
+
+            if (
+                (this.exitLineSegment.exitY1 === kingDownLineSegment.y1)
+                && (this.exitLineSegment.exitX1 <= kingDownLineSegment.x1)
+                && (this.exitLineSegment.exitX2 >= kingDownLineSegment.x2)
+            ) {
+                return true;
+            }
+
+
+        } else if (this.exitLineSegment.exitX1 === this.exitLineSegment.exitX2) {//如果exitLineSegment是竖直线段
+            var kingLeftLineSegment = {
+                x1: this.king.x,
+                y1: this.king.y,
+                x2: this.king.x,
+                y2: this.king.y + this.king.height
+            };
+
+            if (
+                (this.exitLineSegment.exitX1 === kingLeftLineSegment.x1)
+                && (this.exitLineSegment.exitY1 <= kingLeftLineSegment.y1)
+                && (this.exitLineSegment.exitY2 >= kingLeftLineSegment.y2)
+            ) {
+                return true;
+            }
+
+            var kingRightLineSegment = {
+                x1: this.king.x + this.king.width,
+                y1: this.king.y,
+                x2: this.king.x + this.king.width,
+                y2: this.king.y + this.king.height
+            };
+
+            if (
+                (this.exitLineSegment.exitX1 === kingRightLineSegment.x1)
+                && (this.exitLineSegment.exitY1 <= kingRightLineSegment.y1)
+                && (this.exitLineSegment.exitY2 >= kingRightLineSegment.y2)
+            ) {
+                return true;
+            }
+
+        } else {
+            throw "[error] No valid exitLineSegment in map";
+        }
+
+        return false;
+    };
+
+    Map.prototype.getSquareById = function getSquareById(id) {
+        var j;
         for (j = 0; j < this.squares.length; j++) {
-            if (square === this.squares[j]) {
-                continue;
+            if (id === this.squares[j].id) {
+                return this.squares[j];
             }
-            if (
-                mayValidSquare.containsPoint(this.squares[j].x, this.squares[j].y)
-                && mayValidSquare.containsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y)
-                && mayValidSquare.containsPoint(this.squares[j].x, this.squares[j].y + this.squares[j].height)
-                && mayValidSquare.containsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y + this.squares[j].height)
-            ) {
-                return false;
+        }
+        return null;
+    };
+
+    Map.prototype.moveSquare = function moveSquare(square, direction) {
+        if (!square) {
+            throw "[error] square not exist";
+        }
+        direction = parseInt(direction);
+        var points = null;
+        // {x: square.x, y: square.y},
+        // {x: square.x + square.width, y: square.y},
+        // {x: square.x, y: square.y + square.height},
+        // {x: square.x + square.width, y: square.y + square.height}
+
+        if (direction == Map.MoveDirections.UP) {
+            points = [
+                {x: square.x, y: square.y - 1},
+                {x: square.x + square.width, y: square.y - 1},
+                {x: square.x, y: square.y + square.height - 1},
+                {x: square.x + square.width, y: square.y + square.height - 1}
+            ];
+        }
+        if (direction == Map.MoveDirections.DOWN) {
+            points = [
+                {x: square.x, y: square.y + 1},
+                {x: square.x + square.width, y: square.y + 1},
+                {x: square.x, y: square.y + square.height + 1},
+                {x: square.x + square.width, y: square.y + square.height + 1}
+            ];
+        }
+        if (direction == Map.MoveDirections.LEFT) {
+            points = [
+                {x: square.x - 1, y: square.y},
+                {x: square.x + square.width - 1, y: square.y},
+                {x: square.x - 1, y: square.y + square.height},
+                {x: square.x + square.width - 1, y: square.y + square.height}
+            ];
+        }
+        if (direction == Map.MoveDirections.RIGHT) {
+            points = [
+                {x: square.x + 1, y: square.y},
+                {x: square.x + square.width + 1, y: square.y},
+                {x: square.x + 1, y: square.y + square.height},
+                {x: square.x + square.width + 1, y: square.y + square.height}
+            ];
+        }
+        if (points) {
+            var i, j;
+            for (i = 0; i < points.length; i++) {
+                if (points[i].x < 0) {
+                    return false;
+                }
+                if (points[i].y < 0) {
+                    return false;
+                }
+                if (points[i].x > this.maxWidth) {
+                    return false;
+                }
+                if (points[i].y > this.maxHeight) {
+                    return false;
+                }
             }
 
-            if (
-                mayValidSquare.innerContainsPoint(this.squares[j].x, this.squares[j].y)
-                || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y)
-                || mayValidSquare.innerContainsPoint(this.squares[j].x, this.squares[j].y + this.squares[j].height)
-                || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y + this.squares[j].height)
-                || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y + this.squares[j].height)
-                || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width - 0.5, this.squares[j].y + this.squares[j].height - 0.5)
-            ) {
-                return false;
+            var mayValidSquare = new Square(points[0].x, points[0].y, square.width, square.height, "tmp");
+            for (j = 0; j < this.squares.length; j++) {
+                if (square === this.squares[j]) {
+                    continue;
+                }
+                if (
+                    mayValidSquare.containsPoint(this.squares[j].x, this.squares[j].y)
+                    && mayValidSquare.containsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y)
+                    && mayValidSquare.containsPoint(this.squares[j].x, this.squares[j].y + this.squares[j].height)
+                    && mayValidSquare.containsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y + this.squares[j].height)
+                ) {
+                    return false;
+                }
+
+                if (
+                    mayValidSquare.innerContainsPoint(this.squares[j].x, this.squares[j].y)
+                    || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y)
+                    || mayValidSquare.innerContainsPoint(this.squares[j].x, this.squares[j].y + this.squares[j].height)
+                    || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y + this.squares[j].height)
+                    || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width, this.squares[j].y + this.squares[j].height)
+                    || mayValidSquare.innerContainsPoint(this.squares[j].x + this.squares[j].width - 0.5, this.squares[j].y + this.squares[j].height - 0.5)
+                ) {
+                    return false;
+                }
+
+
+                if (
+                    this.squares[j].containsPoint(mayValidSquare.x, mayValidSquare.y)
+                    && this.squares[j].containsPoint(mayValidSquare.x + mayValidSquare.width, mayValidSquare.y)
+                    && this.squares[j].containsPoint(mayValidSquare.x, mayValidSquare.y + mayValidSquare.height)
+                    && this.squares[j].containsPoint(mayValidSquare.x + mayValidSquare.width, mayValidSquare.y + mayValidSquare.height)
+                ) {
+                    return false;
+                }
+
+                if (
+                    this.squares[j].innerContainsPoint(mayValidSquare.x, mayValidSquare.y)
+                    || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width, mayValidSquare.y)
+                    || this.squares[j].innerContainsPoint(mayValidSquare.x, mayValidSquare.y + mayValidSquare.height)
+                    || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width, mayValidSquare.y + mayValidSquare.height)
+                    || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width - 0.5, mayValidSquare.y + mayValidSquare.height - 0.5)
+                ) {
+                    return false;
+                }
+
+
             }
 
 
-            if (
-                this.squares[j].containsPoint(mayValidSquare.x, mayValidSquare.y)
-                && this.squares[j].containsPoint(mayValidSquare.x + mayValidSquare.width, mayValidSquare.y)
-                && this.squares[j].containsPoint(mayValidSquare.x, mayValidSquare.y + mayValidSquare.height)
-                && this.squares[j].containsPoint(mayValidSquare.x + mayValidSquare.width, mayValidSquare.y + mayValidSquare.height)
-            ) {
-                return false;
-            }
-
-            if (
-                this.squares[j].innerContainsPoint(mayValidSquare.x, mayValidSquare.y)
-                || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width, mayValidSquare.y)
-                || this.squares[j].innerContainsPoint(mayValidSquare.x, mayValidSquare.y + mayValidSquare.height)
-                || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width, mayValidSquare.y + mayValidSquare.height)
-                || this.squares[j].innerContainsPoint(mayValidSquare.x + mayValidSquare.width - 0.5, mayValidSquare.y + mayValidSquare.height - 0.5)
-            ) {
-                return false;
-            }
+            square.x = points[0].x;
+            square.y = points[0].y;
+            return true;
+        }
+        return false;
+    };
 
 
+    function Game(map) {
+        this.map = map;
+    }
+
+    Game.prototype.isWin = function isWin() {
+        return this.map.isKingReachedExit();
+    };
+
+
+    Game.prototype.initHtml = function initHtml(htmlGameContext, handleHtmlKeyPress) {
+        htmlGameContext.map = this.map;
+        htmlGameContext.game = this;
+
+        var html = '';
+        var i, square, style, id;
+        var unit = htmlGameContext.unit;
+        for (i = 0; i < this.map.squares.length; i++) {
+            square = this.map.squares[i];
+            /*
+            style="
+            border-style: solid;
+            width: 10px;
+            height: 20px;
+            position: relative;
+            top: 10px;
+            left: 0px;
+            "
+             */
+            style = "border-style: solid; position: fixed;";
+            style += "width: " + unit * square.width + "px;";
+            style += "height: " + unit * square.height + "px;";
+            style += "left: " + unit * square.x + "px;";
+            style += "top: " + unit * square.y + "px;";
+
+            html += '<div onclick="selectHtmlSquare(this);" class="square" style="' + style + '" id="' + square.id + '">' + square.name + '</div>';
         }
 
 
-        square.x = points[0].x;
-        square.y = points[0].y;
-        return true;
-    }
-    return false;
-};
+        if (this.map.exitLineSegment.exitY1 === this.map.exitLineSegment.exitY2) {
+            //水平出口
+            style = "border-style: solid; position: fixed; border-color: aquamarine;";
+            style += "width: " + unit * (this.map.exitLineSegment.exitX2 - this.map.exitLineSegment.exitX1) + "px;";
+            style += "height: 0px;";
+            style += "left: " + unit * this.map.exitLineSegment.exitX1 + "px;";
+            style += "top: " + unit * this.map.exitLineSegment.exitY1 + "px;";
+
+            html += '<div style="' + style + '"</div>';
+        }
+        if (this.map.exitLineSegment.exitX1 === this.map.exitLineSegment.exitX2) {
+            //竖直出口
+            style = "border-style: solid; position: fixed; border-color: aquamarine;";
+            style += "width: 0px;";
+            style += "height: " + unit * (this.map.exitLineSegment.exitY2 - this.map.exitLineSegment.exitY1) + "px;";
+            style += "left: " + unit * this.map.exitLineSegment.exitX1 + "px;";
+            style += "top: " + unit * this.map.exitLineSegment.exitY1 + "px;";
+
+            html += '<div style="' + style + '"</div>';
+        }
 
 
-function Game(map) {
-    this.map = map;
-}
+        var playground;
+        playground = document.getElementById('playground');
+        if (!playground) {
+            playground = document.createElement('div');
+            playground.setAttribute("id", "playground");
+            document.body.appendChild(playground);
+        }
 
-Game.prototype.isWin = function isWin() {
-    return this.map.isKingReachedExit();
-};
+        playground.innerHTML = html;
 
-
-Game.prototype.initHtml = function initHtml(htmlGameContext, handleHtmlKeyPress) {
-    htmlGameContext.map = this.map;
-    htmlGameContext.game = this;
-
-    var html = '';
-    var i, square, style, id;
-    var unit = htmlGameContext.unit;
-    for (i = 0; i < this.map.squares.length; i++) {
-        square = this.map.squares[i];
-        /*
-        style="
-        border-style: solid;
-        width: 10px;
-        height: 20px;
-        position: relative;
-        top: 10px;
-        left: 0px;
-        "
-         */
-        style = "border-style: solid; position: fixed;";
-        style += "width: " + unit * square.width + "px;";
-        style += "height: " + unit * square.height + "px;";
-        style += "left: " + unit * square.x + "px;";
-        style += "top: " + unit * square.y + "px;";
-
-        html += '<div onclick="selectHtmlSquare(this);" class="square" style="' + style + '" id="' + square.id + '">' + square.name + '</div>';
-    }
+        handleHtmlKeyPress();
+    };
 
 
-    if (this.map.exitLineSegment.exitY1 === this.map.exitLineSegment.exitY2) {
-        //水平出口
-        style = "border-style: solid; position: fixed; border-color: aquamarine;";
-        style += "width: " + unit * (this.map.exitLineSegment.exitX2 - this.map.exitLineSegment.exitX1) + "px;";
-        style += "height: 0px;";
-        style += "left: " + unit * this.map.exitLineSegment.exitX1 + "px;";
-        style += "top: " + unit * this.map.exitLineSegment.exitY1 + "px;";
-
-        html += '<div style="' + style + '"</div>';
-    }
-    if (this.map.exitLineSegment.exitX1 === this.map.exitLineSegment.exitX2) {
-        //竖直出口
-        style = "border-style: solid; position: fixed; border-color: aquamarine;";
-        style += "width: 0px;";
-        style += "height: " + unit * (this.map.exitLineSegment.exitY2 - this.map.exitLineSegment.exitY1) + "px;";
-        style += "left: " + unit * this.map.exitLineSegment.exitX1 + "px;";
-        style += "top: " + unit * this.map.exitLineSegment.exitY1 + "px;";
-
-        html += '<div style="' + style + '"</div>';
-    }
 
 
-    var playground;
-    playground = document.getElementById('playground');
-    if (!playground) {
-        playground = document.createElement('div');
-        playground.setAttribute("id", "playground");
-        document.body.appendChild(playground);
+
+
+
+
+
+
+
+
+
+    var htmlGameContext = {
+        currentDom: null,
+        currentSquare: null,
+        map: null,
+        game: null,
+        unit: 30
+    };
+
+    function selectHtmlSquare(dom) {
+        if (htmlGameContext.currentDom) {
+            htmlGameContext.currentDom.style.color = '';
+            htmlGameContext.currentSquare = null;
+        }
+
+        htmlGameContext.currentDom = dom;
+        htmlGameContext.currentDom.style.color = 'red';
+
+        var squareId = dom.id;
+        htmlGameContext.currentSquare = htmlGameContext.map.getSquareById(squareId);
     }
 
-    playground.innerHTML = html;
-
-    handleHtmlKeyPress();
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-var htmlGameContext = {
-    currentDom: null,
-    currentSquare: null,
-    map: null,
-    game: null,
-    unit: 30
-};
-
-function refreshCurrentSquareHtml() {
-    if (!htmlGameContext.currentDom) {
-        return;
-    }
-    var dom = htmlGameContext.currentDom;
-    var unit = htmlGameContext.unit;
-    dom.style.left = unit * htmlGameContext.currentSquare.x + "px";
-    dom.style.top = unit * htmlGameContext.currentSquare.y + "px";
-}
-
-function selectHtmlSquare(dom) {
-    if (htmlGameContext.currentDom) {
-        htmlGameContext.currentDom.style.color = '';
-        htmlGameContext.currentSquare = null;
+    function refreshCurrentSquareHtml() {
+        if (!htmlGameContext.currentDom) {
+            return;
+        }
+        var dom = htmlGameContext.currentDom;
+        var unit = htmlGameContext.unit;
+        dom.style.left = unit * htmlGameContext.currentSquare.x + "px";
+        dom.style.top = unit * htmlGameContext.currentSquare.y + "px";
     }
 
-    htmlGameContext.currentDom = dom;
-    htmlGameContext.currentDom.style.color = 'red';
-
-    var squareId = dom.id;
-    htmlGameContext.currentSquare = htmlGameContext.map.getSquareById(squareId);
-}
-
-function handleHtmlKeyPress() {
-    document.onkeyup = function (event) {
+    function processKeyUp(code) {
         var square = htmlGameContext.currentSquare;
         if (!square) {
             return;
         }
-        if (event.code === "ArrowUp") {
+        
+        if (code === "ArrowUp") {
             htmlGameContext.map.moveSquare(square, Map.MoveDirections.UP);
         }
-        if (event.code === "ArrowDown") {
+        if (code === "ArrowDown") {
             htmlGameContext.map.moveSquare(square, Map.MoveDirections.DOWN);
         }
-        if (event.code === "ArrowLeft") {
+        if (code === "ArrowLeft") {
             htmlGameContext.map.moveSquare(square, Map.MoveDirections.LEFT);
         }
-        if (event.code === "ArrowRight") {
+        if (code === "ArrowRight") {
             htmlGameContext.map.moveSquare(square, Map.MoveDirections.RIGHT);
         }
 
@@ -460,31 +467,35 @@ function handleHtmlKeyPress() {
                 initHtmlGame();
             }
         }, 300);
-    };
-}
+    }
+    function handleHtmlKeyPress() {
+        document.onkeyup = function (event) {
+            processKeyUp(event.code);
+        };
+    }
 
 
-function initHtmlGame() {
-    var squares = [
-        new Square(0, 0, 1, 2, "关羽"),
-        new Square(1, 0, 1, 2, "赵云"),
-        new Square(2, 0, 1, 2, "张飞"),
-        new Square(3, 0, 1, 2, "马超"),
-        new Square(0, 2, 2, 1, "黄忠"),
-        new Square(0, 3, 1, 1, "士"),
-        new Square(1, 3, 1, 1, "兵"),
-        new Square(0, 4, 1, 1, "勇"),
-        new Square(1, 4, 1, 1, "卒"),
-        new Square(2, 2, 2, 2, "*曹操*", true)
-    ];
+    function initHtmlGame() {
+        var squares = [
+            new Square(0, 0, 1, 2, "关羽"),
+            new Square(1, 0, 1, 2, "赵云"),
+            new Square(2, 0, 1, 2, "张飞"),
+            new Square(3, 0, 1, 2, "马超"),
+            new Square(0, 2, 2, 1, "黄忠"),
+            new Square(0, 3, 1, 1, "士"),
+            new Square(1, 3, 1, 1, "兵"),
+            new Square(0, 4, 1, 1, "勇"),
+            new Square(1, 4, 1, 1, "卒"),
+            new Square(2, 2, 2, 2, "*曹操*", true)
+        ];
 
-    var map = new Map(squares, 1, 5, 3, 5, 4, 5);
+        var map = new Map(squares, 1, 5, 3, 5, 4, 5);
 
-    var game = new Game(map);
-    game.initHtml(htmlGameContext, handleHtmlKeyPress);
-}
+        var game = new Game(map);
+        game.initHtml(htmlGameContext, handleHtmlKeyPress);
+    }
 
-initHtmlGame();
+    initHtmlGame();
 </script>
 </body>
 
