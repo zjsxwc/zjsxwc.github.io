@@ -90,15 +90,33 @@
 /* ================= 核心：JE 谱移调 ================= */
 
 // 调名 -> 半音值（C=0, C#=1, ...）
+// const NOTE_TO_SEMITONE = {
+//   'C': 0,  'C#': 1,  'DB': 1,
+//   'D': 2,  'D#': 3,  'EB': 3,
+//   'E': 4,  'FB': 4,  'E#': 5,
+//   'F': 5,  'F#': 6,  'GB': 6,
+//   'G': 7,  'G#': 8,  'AB': 8,
+//   'A': 9,  'A#': 10, 'BB': 10,
+//   'B': 11, 'CB': 11, 'B#': 0
+// };
+
+//口琴的调名与半音值
 const NOTE_TO_SEMITONE = {
-  'C': 0,  'C#': 1,  'DB': 1,
+  'GB': -6,
+  'G': -5,  'G#': -4,  'AB': -4,
+
+  'A': -3,  'A#': -2, 'BB': -2,
+
+  'B': -1, 'CB': -1, 'B#': 0,
+
+  'C': 0,  
+
+  'C#': 1,  'DB': 1,
   'D': 2,  'D#': 3,  'EB': 3,
   'E': 4,  'FB': 4,  'E#': 5,
-  'F': 5,  'F#': 6,  'GB': 6,
-  'G': 7,  'G#': 8,  'AB': 8,
-  'A': 9,  'A#': 10, 'BB': 10,
-  'B': 11, 'CB': 11, 'B#': 0
+  'F': 5,  'F#': 6,  
 };
+
 
 // 固定调中 1~7 对应的半音偏移（以 C 为 0）
 const NATURAL_OFFSET = { 1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9, 7: 11 };
@@ -137,7 +155,8 @@ function parseCommand(command) {
   const sourceRoot = noteToSemitone(m[1]);
   const targetRoot = noteToSemitone(m[2]);
 
-  let diff = targetRoot - sourceRoot;
+  // let diff = targetRoot - sourceRoot;
+  let diff = sourceRoot - targetRoot;//要变化的半音值
   while (diff > 6) diff -= 12;
   while (diff < -6) diff += 12;
 
