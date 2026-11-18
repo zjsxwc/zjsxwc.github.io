@@ -249,7 +249,7 @@ const els = {
 function describe(info) {
   const d = info.diff;
   if (d === 0) return `${info.source} → ${info.target}：无需移调`;
-  const dir = d > 0 ? '向下' : '向上';
+  const dir = d > 0 ? '向上' : '向下';
   const n = Math.abs(d);
   return `${info.source} → ${info.target}：${dir} ${n} 个半音（${INTERVAL_NAMES[n] || n + ' 个半音'}）`;
 }
